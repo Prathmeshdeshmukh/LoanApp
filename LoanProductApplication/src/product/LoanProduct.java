@@ -10,6 +10,7 @@ import utils.Constants;
 import utils.Util;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 
 public class LoanProduct extends Product {
 
@@ -24,13 +25,13 @@ public class LoanProduct extends Product {
 	}
 
 	public LoanProduct(int productId, Date startDate, Date endDate, String productType, double totalValue, double rate,
-			List<Schedule> disbursementSchedule) {
+			List<Schedule> disbursementSchedule,String status) {
 
 		super(productId, productType, startDate, endDate);
 		this.rate = rate;
 		this.totalValue = totalValue;
 		this.disbursementSchedule = disbursementSchedule;
-		this.status = "NEW";
+		this.status =status;
 	}
 
 	public LoanProduct(Product p, double totalValue, double rate, List<Schedule> disbursementSchedule, String status) {
@@ -73,6 +74,16 @@ public class LoanProduct extends Product {
 
 	public void setDisbursementSchedule(List<Schedule> disbursementSchedule) {
 		this.disbursementSchedule = disbursementSchedule;
+	}
+	public void setStatus(String status){
+		
+		
+		this.status=status;
+	}
+	public String getStatus() {
+		
+		
+		 return this.status;
 	}
 
 	// Method prints disbursement schedule
@@ -195,7 +206,36 @@ public class LoanProduct extends Product {
 		}
 		return disbursementSchedule;
 	}
+ public static void validateStartDate(Date startDate){
+	 Scanner read = new Scanner(System.in);
+	 if (startDate == null) {
+			while (startDate == null) {
+				System.out.println("Enter start date of Loan in format dd/mm/yyyy: \n");
 
+				startDate = Util.parseDate(read.next());
+			}
+		}
+ }
+ public static void validateEndDate(Date endDate,Date startDate){
+	 Scanner read = new Scanner(System.in);
+	 if (endDate == null) {
+			while (endDate == null) {
+				System.out.println("Enter end date of Loan in format dd/mm/yyyy: \n");
+
+				endDate = Util.parseDate(read.next());
+			}
+		}
+		if (endDate.before(startDate)) {
+			while (endDate.before(startDate)) {
+				System.out.println("Enter end date of Loan should be after end date \n");
+				System.out.println("Enter end date of Loan in format dd/mm/yyyy: \n");
+				endDate = Util.parseDate(read.next());
+				if (endDate.before(startDate)) {
+					System.out.println("Entered end date of Loan should be after start date \n");
+				}
+			}
+		}
+ }
 	@Override
 	public Product buildProduct() throws Exception {
 		Scanner read = new Scanner(System.in);
@@ -203,32 +243,26 @@ public class LoanProduct extends Product {
 
 			System.out.println("Enter start date of Loan in format dd/mm/yyyy: \n");
 			Date startDate = Util.parseDate(read.next());
-			if (startDate == null) {
-				while (startDate == null) {
-					System.out.println("Enter start date of Loan in format dd/mm/yyyy: \n");
-
-					startDate = Util.parseDate(read.next());
-				}
-			}
+			validateStartDate(startDate);
 			System.out.println("Enter end date of Loan in format dd/mm/yyyy: \n");
 			Date endDate = Util.parseDate(read.next());
-			if (endDate == null) {
-				while (endDate == null) {
-					System.out.println("Enter end date of Loan in format dd/mm/yyyy: \n");
+			
+			Date currentDate = Util.toSQLDate(Calendar.getInstance().getTime());
+			String newStatus=new String(); 
+			if(newStatus.length()==0){
+				if(currentDate.before(startDate)){
+					newStatus = "PENDING";
+					
+				}else if(currentDate.after(endDate)){
+					newStatus = "COMPLETED";
+				
+				}else{
+					newStatus = "ACTIVE";
+					
+				}
+			}
+		
 
-					endDate = Util.parseDate(read.next());
-				}
-			}
-			if (endDate.before(startDate)) {
-				while (endDate.before(startDate)) {
-					System.out.println("Enter end date of Loan should be after end date \n");
-					System.out.println("Enter end date of Loan in format dd/mm/yyyy: \n");
-					endDate = Util.parseDate(read.next());
-					if (endDate.before(startDate)) {
-						System.out.println("Entered end date of Loan should be after start date \n");
-					}
-				}
-			}
 			System.out.println("Enter rate of interest for the Loan: \n");
 			double rate = read.nextDouble();
 			if (rate <= 0) {
@@ -291,7 +325,7 @@ public class LoanProduct extends Product {
 			AppStarter.addInput(Constants.RATE, rate);
 			AppStarter.addInput(Constants.TOTALVALUE, totalValue);
 			LoanProduct loanProduct = new LoanProduct(-1, startDate, endDate, this.getProductType(), totalValue, rate,
-					disbursementSchedule);
+					disbursementSchedule,newStatus);
 			return loanProduct;
 		} catch (Exception e) {
 			System.out.print(Constants.DETAILSERROR);

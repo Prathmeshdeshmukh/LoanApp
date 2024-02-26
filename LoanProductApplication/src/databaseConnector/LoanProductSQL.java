@@ -19,7 +19,7 @@ import utils.Util;
 
 public class LoanProductSQL extends ProductSQL {
 
-	protected static final String SAVE_LOAN_PRODUCT = "INSERT INTO  LOANPRODUCT (productId,loanvalue,interestrate) VALUES (?,?,?)";
+	protected static final String SAVE_LOAN_PRODUCT = "INSERT INTO  LOANPRODUCT (productId,loanvalue,interestrate,status) VALUES (?,?,?,?)";
 	protected static final String READ_LOAN_PRODUCT = "SELECT * FROM LOANPRODUCT WHERE PRODUCTID=? ";
 
 	/**
@@ -40,6 +40,8 @@ public class LoanProductSQL extends ProductSQL {
 				stmt.setInt(j++, p.getProductId());
 				stmt.setInt(j++, (int) lp.getTotalValue());
 				stmt.setInt(j++, (int) lp.getRate());
+				stmt.setString(j++,  lp.getStatus());
+				
 			} else {
 				stmt.setNull(j++, Types.DATE);
 			}
@@ -85,16 +87,10 @@ public class LoanProductSQL extends ProductSQL {
 				String status = rs.getString("STATUS");
 				Date sDate = (Date) lp.getStartDate();
 				Date eDate = (Date) lp.getEndDate();
-				 Date currentDate = Util.toSQLDate(Calendar.getInstance().getTime());
-				 if(status == null){
-					if(currentDate.before(sDate)){
-						status = "PENDING";
-					}else if(currentDate.after(eDate)){
-						status = "COMPLETED";
-					}else{
-						status = "ACTIVE";
-					}
-				}
+				 
+				 
+				 updateStatus(productId,sDate,eDate);
+				
 				List<Schedule> ls = ScheduleSQL.readDisbursementSchedule(productId);
 				lp = new LoanProduct(lp, totalValue, rate, ls, status);			
 //				System.out.println("Displaying Product with id  " +id);
@@ -137,5 +133,38 @@ public class LoanProductSQL extends ProductSQL {
 			DbUtils.close(stmt, con);
 		}
 	}
+	public static void updateStatus(int id,Date startDate,Date endDate) {
+		PreparedStatement stmt = null;
+		Connection con = null;
+		String status =new String();
+		try {
+			Date currentDate = Util.toSQLDate(Calendar.getInstance().getTime());
+			
+				if(currentDate.before(startDate)){
+					status = "PENDING";
+					
+				}else if(currentDate.after(endDate)){
+					status = "COMPLETED";
+				
+				}else{
+					status = "ACTIVE";
+					
+				}
+			
+			con = DatabaseHelper.getConnection();
+			stmt = con.prepareStatement("UPDATE loanProduct SET status = ? WHERE productId = ?");
+			stmt.setString(1,status);
+			stmt.setInt(2, id);
+			stmt.executeQuery();
+			
+			
+		} catch (Exception e) {
+			e.printStackTrace();
+			System.out.println("No Product found for product id " + id);
+		} finally {
+			DbUtils.close(stmt, con);
+		}
+	}
+	
 
 }
